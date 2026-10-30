@@ -65,7 +65,7 @@ description: 국내 카드사 9곳(삼성·신한·KB국민·롯데·우리·하
 | `WebSearch` | 기업별 뉴스 수집 | 기본 `mode: "standard"`. 한 회사당 여러 쿼리를 한 턴에 병렬로 보낸다. 결과가 빈약할 때만 `"extended"`. |
 | `WebFetch` | 게재일·언론사 확인, 핵심 기사 수치 검증 | 검색 결과에 게재일이 불분명한 기사, 수치가 들어간 🔴 기사만 연다. |
 | `Write` | 페이지 데이터·HTML 작성 | 템플릿 [assets/news-page.html](assets/news-page.html)을 복사해 데이터만 채운다. |
-| `Artifact` | 웹 페이지 게시 | 첫 게시 전 `artifact-design` 스킬을 로드한다. 같은 날 재실행은 같은 파일 경로로 다시 게시해 URL을 유지한다. |
+| `Artifact` | 웹 페이지 게시 | 첫 게시 전 `artifact-design`·`artifact-capabilities` 스킬을 로드한다. 게시할 때 Step 4의 `capabilities`를 꼭 넘긴다(현시점 조회 버튼용). 같은 날 재실행은 같은 파일 경로로 다시 게시해 URL을 유지한다. |
 
 - `WebSearch`·`WebFetch`가 지연 로드 상태면 `ToolSearch`로 `select:WebSearch,WebFetch`를 한 번에 로드한다.
 - 웹 검색 도구를 쓸 수 없는 환경이면 그 사실을 알리고, 학습 데이터 기반 내용을 "최신 뉴스"로 제시하지 않는다.
@@ -116,7 +116,27 @@ description: 국내 카드사 9곳(삼성·신한·KB국민·롯데·우리·하
 1. `artifact-design` 스킬을 로드한다(첫 게시 시).
 2. [assets/news-page.html](assets/news-page.html)을 작업 폴더의 `news/card-payment-news_<to YYYYMMDD>.html`(예: `card-payment-news_20261031.html`)로 복사한다. 페이지는 회사별 기사를 한 목록에 최신순으로 보여준다.
 3. 파일 안의 `<script id="news-data" type="application/json">` 블록만 아래 형식의 데이터로 바꾼다. 페이지 구조·스타일은 고치지 않는다.
-4. `Artifact`로 게시하고(첫 게시 시 `icon: "news"`), 링크를 사용자에게 준다.
+4. `Artifact`로 게시하고(첫 게시 시 `icon: "news"`), 링크를 사용자에게 준다. 게시할 때 아래 `capabilities`를 넘긴다. 빠뜨리면 페이지의 '현시점 조회하기' 버튼이 동작하지 않는다.
+
+```json
+{
+  "mcp": { "servers": [ { "server": "host:claude_browser", "tools": ["navigate", "get_page_text"] } ] },
+  "sample": {},
+  "artifact": {}
+}
+```
+
+### Step 4-1. '현시점 조회하기' 버튼 (페이지 안에서 동작)
+템플릿에 들어 있는 버튼으로, 페이지를 연 사람이 Claude 없이 데이터를 새로 고칠 수 있다. 스킬이 따로 할 일은 없고, 동작은 다음과 같다.
+
+1. 기준일을 오늘(KST)로 잡고 기간을 최근 1개월로 다시 계산한다.
+2. Claude 데스크톱 앱의 내장 브라우저(`host:claude_browser`)로 회사별 Google 뉴스 RSS(`news.google.com/rss/search`, `after:`/`before:` 기간 지정)를 열어 읽는다.
+3. RSS의 `<source url>` 도메인이 references/outlets.md 50곳에 해당하는 기사만 남긴다. RSS를 거치므로 검색 도구가 막은 8곳도 포함된다. 게재일은 `<pubDate>`를 KST로 바꾼 날짜다.
+4. `sample`(Claude, quick 모델)로 새 기사의 카테고리·중요도·같은 사건 여부와 회사별 동향 요약을 정한다. Claude를 쓸 수 없으면 제목 키워드로 분류한다.
+5. 기존 기사 중 기간 안의 것은 남기고, 새 기사와 합쳐 회사별 최대 30건(Step 0의 선별 규칙)으로 줄인다. 핵심 이슈는 중요도 `high` 기사 중 최신 5건으로 다시 뽑는다.
+6. `artifact` 기능으로 페이지를 새 버전으로 저장한다. 저장 권한이 없는 사람에게는 그 화면에만 반영된다.
+
+제약: 버튼은 **Claude 데스크톱 앱에서 페이지를 열었을 때만** 동작한다(내장 브라우저가 필요). 처음 누를 때 브라우저 사용과 Claude 사용을 허용하는 확인 창이 뜬다. 자동 수집한 기사는 `"auto": true`이고 요약(`summary`)이 없으며, 링크는 Google 뉴스 주소다.
 
 데이터 형식:
 
@@ -151,6 +171,7 @@ description: 국내 카드사 9곳(삼성·신한·KB국민·롯데·우리·하
 ```
 
 - `group`은 `card` 또는 `pay`. `articles`는 게재일 최신순으로 정렬한다.
+- `updatedAt`(예: `"2026-10-31 14:05 KST"`)과 기사별 `auto: true`는 '현시점 조회하기' 버튼이 채운다. 스킬이 직접 수집할 때는 넣지 않는다.
 - 기사가 0건인 회사도 `articles: []`로 넣는다(페이지에 "기간 내 기사 없음"으로 표시됨).
 
 ### Step 5. 자가 점검 후 보고
@@ -182,6 +203,7 @@ description: 국내 카드사 9곳(삼성·신한·KB국민·롯데·우리·하
 - **게재일 엄격 확인**: 사이트 상단 날짜·갱신일을 게재일로 쓰지 않는다.
 - **제목은 원 제목 그대로**: 기사 제목은 원문 표기를 그대로 쓰되(인용이 아닌 서지 정보), 본문 문장은 옮기지 않고 재서술한다.
 - **기간 명시**: 페이지 상단에 수집 기간과 기준일을 항상 표기한다.
+- **버튼 수집도 같은 원칙**: '현시점 조회하기'는 50곳 밖 매체와 기간 밖 기사를 버리고, Claude에게 제목에 없는 사실을 지어내지 말라고 지시한다. 자동 수집 기사에는 요약을 만들지 않는다. 이 동작을 바꾸려면 템플릿의 `parseRss`·`classify`를 고친다.
 - **안전한 렌더링**: 템플릿은 기사 데이터를 `textContent`로만 넣는다. 데이터에 HTML 태그를 넣거나 템플릿을 `innerHTML` 방식으로 바꾸지 않는다. URL은 `http`/`https`만 허용한다.
 
 ### 하지 않는다
