@@ -1,0 +1,319 @@
+<title>카드·페이 뉴스룸</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 상단 기간·요약 → 핵심 이슈 → 회사 선택(카드사/간편결제, 건수 n/30) → 회사별 기사 목록(날짜·언론사·제목·요약) */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #161a22;
+  --muted: #5b6474;
+  --line: #dde1e8;
+  --accent: #1f4fd1;
+  --accent-soft: #e6ecfb;
+  --high: #c4372c;
+  --mid: #b7791f;
+  --low: #8a93a3;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Consolas", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1218; --surface: #171b23; --fg: #e7eaf0; --muted: #98a1b2; --line: #2a303b;
+    --accent: #7c9cf5; --accent-soft: #1d2640; --high: #ef7a70; --mid: #e0a94d; --low: #6f7889;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218; --surface: #171b23; --fg: #e7eaf0; --muted: #98a1b2; --line: #2a303b;
+  --accent: #7c9cf5; --accent-soft: #1d2640; --high: #ef7a70; --mid: #e0a94d; --low: #6f7889;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap {
+  max-width: 1040px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+  display: grid; gap: 28px;
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+header { display: grid; gap: 8px; }
+h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.01em; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; }
+.meta b { color: var(--fg); font-weight: 600; }
+
+.highlights { display: grid; gap: 10px; }
+.highlights ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.highlights li { padding-left: 4px; }
+.highlights .co { font-weight: 600; margin-right: 6px; }
+
+.picker { display: grid; gap: 14px; }
+.group { display: grid; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-size: 14px; cursor: pointer;
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+.chip .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip[aria-pressed="true"] .n { color: var(--surface); opacity: .85; }
+.chip.empty { color: var(--muted); }
+
+.panel { display: grid; gap: 16px; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.panel-head h2 { margin: 0; font-size: 22px; font-weight: 700; }
+.digest { margin: 0; color: var(--muted); max-width: 70ch; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter {
+  font: inherit; font-size: 13px; cursor: pointer; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+}
+.filter[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }
+
+.list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.item {
+  display: grid; grid-template-columns: 96px 112px minmax(0, 1fr); gap: 4px 16px;
+  padding: 14px 16px; border-top: 1px solid var(--line);
+}
+.item:first-child { border-top: 0; }
+.date { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.outlet { font-size: 13px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.body { min-width: 0; display: grid; gap: 4px; }
+.title { font-weight: 600; text-decoration: none; color: var(--fg); overflow-wrap: anywhere; }
+.title:hover { color: var(--accent); text-decoration: underline; }
+.summary { margin: 0; color: var(--muted); font-size: 14px; }
+.tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--muted); }
+.imp { display: inline-flex; align-items: center; gap: 5px; }
+.imp::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--low); }
+.imp.high::before { background: var(--high); }
+.imp.mid::before { background: var(--mid); }
+.cat { padding: 1px 7px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.also a { color: var(--muted); }
+.none { padding: 28px 16px; text-align: center; color: var(--muted); }
+.highlights .when { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+footer { color: var(--muted); font-size: 12px; }
+
+@media (max-width: 640px) {
+  .item { grid-template-columns: auto minmax(0, 1fr); }
+  .item .body { grid-column: 1 / -1; }
+  h1 { font-size: 23px; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="label">국내 카드사·간편결제사 뉴스</span>
+    <h1 id="page-title">카드·간편결제 뉴스</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="highlights" id="highlights-box" aria-labelledby="hl-title">
+    <span class="label" id="hl-title">이번 기간 핵심 이슈</span>
+    <ol id="highlights"></ol>
+  </section>
+
+  <nav class="picker" aria-label="회사 선택">
+    <div class="group"><span class="label">카드사</span><div class="chips" id="chips-card"></div></div>
+    <div class="group"><span class="label">간편결제</span><div class="chips" id="chips-pay"></div></div>
+  </nav>
+
+  <section class="panel" aria-live="polite">
+    <div class="panel-head">
+      <h2 id="co-name"></h2>
+      <span class="mono label" id="co-count"></span>
+    </div>
+    <p class="digest" id="co-digest"></p>
+    <div class="filters" id="filters" role="group" aria-label="카테고리 필터"></div>
+    <ol class="list" id="list"></ol>
+  </section>
+
+  <footer>요약은 각 기사를 재서술한 것입니다. 원문과 수치는 링크된 기사에서 확인하세요. 투자 판단의 근거로 쓰지 마세요.</footer>
+</div>
+
+<!-- 스킬이 이 블록만 교체한다. 아래는 예시 데이터. -->
+<script id="news-data" type="application/json">
+{
+  "title": "카드·간편결제 뉴스 (예시)",
+  "period": { "from": "2026-10-01", "to": "2026-10-31" },
+  "generatedAt": "2026-10-30",
+  "limitPerCompany": 30,
+  "highlights": [
+    { "company": "신한카드", "date": "2026-10-29", "text": "3분기 순이익 73.7% 증가, 사옥 매각 일회성 이익 1,656억원 포함", "url": "https://ajunews.com/view/20261029152847060" },
+    { "company": "삼성카드", "date": "2026-10-29", "text": "3분기 순이익 13.5% 감소, 조달비용 부담", "url": "https://ajunews.com/view/20261029152847060" },
+    { "company": "업계", "date": "2026-10-29", "text": "여전채(AA+ 3년물) 금리 1년 새 1.39%p 상승, 조달비용 부담 확대", "url": "https://ajunews.com/view/20261029152847060" }
+  ],
+  "companies": [
+    { "id": "samsung", "name": "삼성카드", "group": "card", "digest": "취급고는 늘었지만 조달비용과 대손비용 증가로 3분기 이익 감소.", "articles": [
+      { "date": "2026-10-29", "outlet": "아주경제", "title": "금융지주 최대 실적에도 카드사는 한숨…소비 둔화·조달비용 부담", "url": "https://ajunews.com/view/20261029152847060", "category": "실적·재무", "importance": "high", "summary": "삼성카드 3분기 순이익은 1,398억원으로 13.5% 줄었다. 조달금리 상승이 부담으로 꼽혔다.", "also": [] }
+    ]},
+    { "id": "shinhan", "name": "신한카드", "group": "card", "digest": "사옥 매각 이익으로 누적 순이익 업계 1위를 되찾음.", "articles": [
+      { "date": "2026-10-29", "outlet": "아주경제", "title": "금융지주 최대 실적에도 카드사는 한숨…소비 둔화·조달비용 부담", "url": "https://ajunews.com/view/20261029152847060", "category": "실적·재무", "importance": "high", "summary": "신한카드 3분기 순이익은 2,324억원으로 73.7% 늘었다. 을지로 사옥 매각 이익 1,656억원이 포함돼 이를 빼면 세전이익은 20% 넘게 줄었다.", "also": [] }
+    ]},
+    { "id": "kb", "name": "KB국민카드", "group": "card", "digest": "순이익 증가, 연체율은 하락했지만 NPL 비율은 상승.", "articles": [
+      { "date": "2026-10-29", "outlet": "뉴스핌", "title": "KB국민카드, 3분기 누적 순이익 3317억원…전년比 18.2% 증가", "url": "https://www.newspim.com/news/view/20261029001165", "category": "실적·재무", "importance": "high", "summary": "3분기 순이익 1,128억원(+13.6%). 9월 말 연체율 1.02%로 내렸고 NPL 비율은 1.00%로 0.07%p 올랐다.", "also": [ { "outlet": "글로벌이코노믹", "url": "https://www.g-enews.com/article/Finance/2026/10/202610291545534804cd0bfacc1c_1" } ] }
+    ]},
+    { "id": "lotte", "name": "롯데카드", "group": "card", "digest": "", "articles": [] },
+    { "id": "woori", "name": "우리카드", "group": "card", "digest": "누적 순이익은 늘었지만 3분기 단독 이익과 연체율은 악화.", "articles": [
+      { "date": "2026-10-23", "outlet": "글로벌이코노믹", "title": "우리카드, 3분기 누적 순이익 1337억…전년比 26.4% 증가", "url": "https://www.g-enews.com/article/Finance/2026/10/202610231636268293cd0bfacc1c_1", "category": "실적·재무", "importance": "mid", "summary": "누적 순이익 약 1,337억원. 3분기 단독은 390억원으로 직전 분기보다 22% 줄었고 연체율은 1.95%로 올랐다.", "also": [] }
+    ]},
+    { "id": "hana", "name": "하나카드", "group": "card", "digest": "3분기 단독 순이익 17.4% 감소, 연체율 소폭 상승.", "articles": [
+      { "date": "2026-10-28", "outlet": "서울파이낸스", "title": "하나카드, 3분기 누적 순이익 1753억원···전년比 3.1%↑", "url": "https://www.seoulfn.com/news/articleView.html?idxno=640894", "category": "실적·재무", "importance": "mid", "summary": "누적 순이익 1,753억원(+3.1%), 3분기 단독 494억원(-17.4%). 연체율은 1.84%다.", "also": [] }
+    ]},
+    { "id": "bc", "name": "BC카드", "group": "card", "digest": "", "articles": [] },
+    { "id": "nh", "name": "NH농협카드", "group": "card", "digest": "카드 부문 단독 실적은 기사에서 확인되지 않음.", "articles": [
+      { "date": "2026-10-28", "outlet": "파이낸셜뉴스", "title": "NH농협금융, 3분기 누적 순이익 2조5278억원 '역대 최대'", "url": "https://www.fnnews.com/news/202610281441483154", "category": "실적·재무", "importance": "low", "summary": "모회사 NH농협금융의 3분기 누적 순이익이 2조 5,278억원으로 역대 최대를 기록했다.", "also": [] }
+    ]},
+    { "id": "hyundai", "name": "현대카드", "group": "card", "digest": "3분기 순이익 소폭 증가.", "articles": [
+      { "date": "2026-10-29", "outlet": "아주경제", "title": "금융지주 최대 실적에도 카드사는 한숨…소비 둔화·조달비용 부담", "url": "https://ajunews.com/view/20261029152847060", "category": "실적·재무", "importance": "mid", "summary": "현대카드 3분기 순이익은 906억원으로 1.2% 늘었다. 업계 전반은 조달비용 상승으로 수익성 압박을 받고 있다.", "also": [] }
+    ]},
+    { "id": "naverpay", "name": "네이버페이", "group": "pay", "digest": "", "articles": [] },
+    { "id": "kakaopay", "name": "카카오페이", "group": "pay", "digest": "", "articles": [] },
+    { "id": "tosspay", "name": "토스페이", "group": "pay", "digest": "", "articles": [] }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  var data;
+  try { data = JSON.parse(document.getElementById("news-data").textContent); }
+  catch (e) { data = { companies: [], highlights: [] }; }
+
+  var IMP = { high: "높음", mid: "보통", low: "낮음" };
+  var limit = data.limitPerCompany || 30;
+  var companies = data.companies || [];
+  var state = { id: null, cat: "전체" };
+
+  function toggleRow(boxId, values, current, labelFn, onPick) {
+    var box = document.getElementById(boxId); box.textContent = "";
+    values.forEach(function (v) {
+      var b = el("button", "filter", labelFn(v)); b.type = "button";
+      b.setAttribute("aria-pressed", String(v === current));
+      b.addEventListener("click", function () { onPick(v); });
+      box.appendChild(b);
+    });
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function safeUrl(u) { return /^https?:\/\//i.test(u || "") ? u : null; }
+  function link(text, url, cls) {
+    var href = safeUrl(url);
+    if (!href) return el("span", cls, text);
+    var a = el("a", cls, text);
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    return a;
+  }
+  function sorted(list) {
+    return list.slice().sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); }).slice(0, limit);
+  }
+
+  // 상단
+  if (data.title) document.getElementById("page-title").textContent = data.title;
+  var total = companies.reduce(function (s, c) { return s + Math.min((c.articles || []).length, limit); }, 0);
+  var meta = document.getElementById("meta");
+  [["기간", (data.period ? data.period.from + " ~ " + data.period.to : "-")],
+   ["기준일", data.generatedAt || "-"],
+   ["기사", total + "건 · " + companies.length + "개사 · 회사별 최대 " + limit + "건"],
+   ["출처", "국내 언론사 50곳"]
+  ].forEach(function (p) {
+    var s = el("span"); s.appendChild(document.createTextNode(p[0] + " ")); s.appendChild(el("b", "mono", p[1])); meta.appendChild(s);
+  });
+
+  var hl = document.getElementById("highlights");
+  (data.highlights || []).forEach(function (h) {
+    var li = el("li");
+    if (h.date) li.appendChild(el("span", "when", h.date));
+    li.appendChild(el("span", "co", h.company || ""));
+    li.appendChild(link(h.text || "", h.url));
+    hl.appendChild(li);
+  });
+  document.getElementById("highlights-box").hidden = !(data.highlights || []).length;
+
+  // 회사 선택
+  var chips = {};
+  companies.forEach(function (c) {
+    var n = Math.min((c.articles || []).length, limit);
+    var b = el("button", "chip" + (n ? "" : " empty"));
+    b.type = "button"; b.id = "chip-" + c.id;
+    b.appendChild(el("span", null, c.name));
+    b.appendChild(el("span", "n", n + "/" + limit));
+    b.addEventListener("click", function () { select(c.id, true); });
+    document.getElementById(c.group === "pay" ? "chips-pay" : "chips-card").appendChild(b);
+    chips[c.id] = b;
+  });
+
+  function render() {
+    var c = companies.filter(function (x) { return x.id === state.id; })[0];
+    if (!c) return;
+    Object.keys(chips).forEach(function (k) { chips[k].setAttribute("aria-pressed", String(k === c.id)); });
+    var arts = sorted(c.articles || []);
+    document.getElementById("co-name").textContent = c.name;
+    document.getElementById("co-count").textContent = arts.length + " / " + limit + "건";
+    var dg = document.getElementById("co-digest");
+    dg.textContent = c.digest || ""; dg.hidden = !c.digest;
+
+    var cats = ["전체"];
+    arts.forEach(function (a) { if (a.category && cats.indexOf(a.category) < 0) cats.push(a.category); });
+    if (cats.indexOf(state.cat) < 0) state.cat = "전체";
+    toggleRow("filters", cats, state.cat, function (c) { return c; },
+      function (c) { state.cat = c; render(); });
+    document.getElementById("filters").hidden = arts.length === 0;
+
+    var list = document.getElementById("list"); list.textContent = "";
+    var shown = arts.filter(function (a) { return state.cat === "전체" || a.category === state.cat; });
+    if (!shown.length) {
+      list.appendChild(el("li", "none", arts.length ? "조건에 맞는 기사 없음" : "기간 내 기사 없음"));
+      return;
+    }
+    shown.forEach(function (a) {
+      var li = el("li", "item");
+      li.appendChild(el("span", "date", a.date || "날짜 미상"));
+      li.appendChild(el("span", "outlet", a.outlet || "언론사 미상"));
+      var body = el("div", "body");
+      body.appendChild(link(a.title || "(제목 없음)", a.url, "title"));
+      if (a.summary) body.appendChild(el("p", "summary", a.summary));
+      var tags = el("div", "tags");
+      tags.appendChild(el("span", "imp " + (a.importance || "low"), "중요도 " + (IMP[a.importance] || "낮음")));
+      if (a.category) tags.appendChild(el("span", "cat", a.category));
+      if (a.also && a.also.length) {
+        var al = el("span", "also", "같은 보도: ");
+        a.also.slice(0, 3).forEach(function (o, i) {
+          if (i) al.appendChild(document.createTextNode(", "));
+          al.appendChild(link(o.outlet || "기사", o.url));
+        });
+        tags.appendChild(al);
+      }
+      body.appendChild(tags);
+      li.appendChild(body);
+      list.appendChild(li);
+    });
+  }
+
+  function select(id, remember) {
+    state.id = id; state.cat = "전체"; render();
+    if (remember) { try { localStorage.setItem("cpn-company", id); } catch (e) {} }
+  }
+
+  var start = (location.hash || "").slice(1);
+  if (!chips[start]) { try { start = localStorage.getItem("cpn-company") || ""; } catch (e) { start = ""; } }
+  if (!chips[start]) {
+    var firstWith = companies.filter(function (c) { return (c.articles || []).length; })[0] || companies[0];
+    start = firstWith ? firstWith.id : "";
+  }
+  if (start) select(start, false);
+})();
+</script>
