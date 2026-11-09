@@ -1,11 +1,15 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>카드·페이 뉴스룸</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style id="page-style">
-/* Layout: 상단 기간·요약·현시점 조회 → 핵심 이슈 → 회사 선택(카드사/간편결제, 건수 n/30) → 회사별 기사 목록(날짜·언론사·제목·요약) */
+/* 기간과 기준일 → 핵심 이슈 → 전체/회사별 보기 → 최신순 기사 목록 */
 :root {
   --bg: #f6f7f9;
   --surface: #ffffff;
@@ -21,6 +25,7 @@
   --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Consolas", monospace;
 }
+[hidden] { display: none !important; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0f1218; --surface: #171b23; --fg: #e7eaf0; --muted: #98a1b2; --line: #2a303b;
@@ -61,6 +66,30 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.01em; text-
 .btn.ghost { background: transparent; color: var(--accent); }
 .status { font-size: 13px; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
 .status.warn { color: var(--high); }
+.coverage-details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 12px 16px; }
+.coverage-details summary { color: var(--accent); cursor: pointer; font-weight: 600; }
+.coverage-details h3 { font-size: 14px; margin: 16px 0 4px; }
+.coverage-details p { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; margin-top: 12px; }
+.info-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.info-table th, .info-table td { padding: 10px 12px; vertical-align: top; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.info-table tr:last-child th, .info-table tr:last-child td { border-bottom: 0; }
+.info-table thead th { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.info-table tbody th { font-weight: 600; }
+.info-table td { color: var(--muted); }
+.coverage-table { table-layout: fixed; }
+.coverage-table tbody th { width: 26%; }
+.coverage-table ul { margin: 6px 0 0; padding-left: 19px; }
+.coverage-table li + li { margin-top: 5px; }
+.scores-table { min-width: 620px; }
+.scores-table tbody th { white-space: nowrap; }
+.score-achieved { color: var(--accent); font-weight: 600; }
+.score-missing { color: var(--muted); font-weight: 600; }
+.coverage-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.coverage-tag { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 3px 8px; font-size: 13px; }
+.coverage-records { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.coverage-records summary { font-size: 13px; }
+.coverage-records p { font-size: 13px; color: var(--muted); }
 
 .highlights { display: grid; gap: 10px; }
 .highlights ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
@@ -69,26 +98,34 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.01em; text-
 .highlights .when { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
 
 .picker { display: grid; gap: 14px; }
+.view-switch { display: flex; flex-wrap: wrap; gap: 8px; }
+.view-btn {
+  min-height: 44px; padding: 8px 16px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.view-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .group { display: grid; gap: 8px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   font: inherit; font-size: 14px; cursor: pointer;
   display: inline-flex; align-items: baseline; gap: 8px;
-  padding: 7px 12px; border-radius: 999px;
+  min-height: 44px; padding: 7px 12px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface); color: var(--fg);
 }
 .chip .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .chip[aria-pressed="true"] .n { color: var(--on-accent); opacity: .85; }
-.chip.empty { color: var(--muted); }
+.chip.empty:not([aria-pressed="true"]) { color: var(--muted); }
 
 .panel { display: grid; gap: 16px; }
 .panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
 .panel-head h2 { margin: 0; font-size: 22px; font-weight: 700; }
 .digest { margin: 0; color: var(--muted); max-width: 70ch; }
+.outlet-score { margin: 0; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .filter {
-  font: inherit; font-size: 13px; cursor: pointer; padding: 4px 10px; border-radius: 6px;
+  min-height: 44px; font: inherit; font-size: 13px; cursor: pointer; padding: 6px 12px; border-radius: 6px;
   border: 1px solid var(--line); background: transparent; color: var(--muted);
 }
 .filter[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }
@@ -111,6 +148,7 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.01em; text-
 .imp.high::before { background: var(--high); }
 .imp.mid::before { background: var(--mid); }
 .cat { padding: 1px 7px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.company-tag { padding: 1px 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--fg); font-weight: 600; }
 .auto { padding: 1px 7px; border-radius: 4px; border: 1px solid var(--line); }
 .also a { color: var(--muted); }
 .none { padding: 28px 16px; text-align: center; color: var(--muted); }
@@ -124,16 +162,21 @@ footer { color: var(--muted); font-size: 12px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
+</head>
+<body>
+<aside style="padding:12px 20px;text-align:center;font:14px system-ui;background:#e6ecfb;color:#173b9c">정기 업데이트: 매일 오전 8시 · 낮 12시 · 오후 5시 30분 (한국 시간) · 수집과 검증 후 반영</aside>
 <div class="wrap" id="app-shell">
   <header>
     <span class="label">국내 카드사·간편결제사 뉴스</span>
     <h1 id="page-title">카드·간편결제 뉴스</h1>
     <div class="meta" id="meta"></div>
-    <div class="refresh">
-      <button type="button" class="btn" id="refresh-btn">현시점 조회하기</button>
-      <button type="button" class="btn ghost" id="stop-btn" hidden>중지</button>
-      <span class="status" id="refresh-status" role="status"></span>
-    </div>
+    <p class="status" id="coverage" role="note"></p>
+    <details class="coverage-details" id="coverage-details">
+      <summary>검색 범위와 언론사 보기</summary>
+      <div id="coverage-content"></div>
+    </details>
+    <p class="status">최신 뉴스가 필요하면 Codex에서 카드사 뉴스 조회를 다시 요청하세요.</p>
+
   </header>
 
   <section class="highlights" id="highlights-box" aria-labelledby="hl-title">
@@ -141,24 +184,41 @@ footer { color: var(--muted); font-size: 12px; }
     <ol id="highlights"></ol>
   </section>
 
-  <nav class="picker" aria-label="회사 선택">
+  <section class="picker" aria-labelledby="view-title">
+    <span class="label" id="view-title">뉴스 보기</span>
+    <div class="view-switch" id="view-switch" role="group" aria-label="뉴스 보기 방식">
+      <button class="view-btn" id="view-all" type="button" aria-pressed="true">전체 최신순</button>
+      <button class="view-btn" id="view-company" type="button" aria-pressed="false">회사별 보기</button>
+    </div>
+    <p class="status" id="view-help">모든 회사의 수집 기사를 최신 날짜와 시각 순으로 보여줍니다.</p>
+  </section>
+
+  <nav class="picker" id="company-picker" aria-label="회사 선택" hidden>
     <div class="group"><span class="label">카드사</span><div class="chips" id="chips-card"></div></div>
     <div class="group"><span class="label">간편결제</span><div class="chips" id="chips-pay"></div></div>
   </nav>
 
-  <section class="panel" aria-live="polite">
+  <details class="coverage-details">
+    <summary>회사별 매체 커버리지 점수 보기</summary>
+    <p class="status">결과에 실린 대표 기사와 같은 주제의 관련 보도에 포함된 우선 언론사 50곳 중 서로 다른 매체 한 곳당 1점입니다. 10점 만점이며 목표는 회사별 최소 9곳입니다.</p>
+    <div id="scores"></div>
+  </details>
+
+  <section class="panel">
     <div class="panel-head">
       <h2 id="co-name"></h2>
-      <span class="mono label" id="co-count"></span>
+      <span class="mono label" id="co-count" role="status" aria-live="polite"></span>
     </div>
     <p class="digest" id="co-digest"></p>
+    <p class="outlet-score" id="co-outlet-score"></p>
     <div class="filters" id="filters" role="group" aria-label="카테고리 필터"></div>
     <ol class="list" id="list"></ol>
   </section>
 
-  <footer>요약은 각 기사를 재서술한 것입니다. '자동 수집' 기사는 현시점 조회로 Google 뉴스에서 가져온 것으로 요약이 없습니다. 원문과 수치는 링크된 기사에서 확인하세요. 투자 판단의 근거로 쓰지 마세요.</footer>
+  <footer>요약은 각 기사를 재서술한 것입니다. 원문과 수치는 링크된 기사에서 확인하세요.</footer>
 </div>
 
+<!-- 스킬이 검증된 데이터로 이 블록을 교체한다. -->
 <script id="news-data" type="application/json">
 {
   "title": "카드·간편결제 뉴스 2026년 10월",
@@ -282,22 +342,10 @@ footer { color: var(--muted); font-size: 12px; }
       ] }
   ]
 }
-
 </script>
 
 <script id="app-js">
 (function () {
-  // 페이지를 다시 저장할 때 쓸 원본: 렌더하기 전에 잡아 둔다
-  var SRC = {
-    head: '<title>카드·페이 뉴스룸</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n' +
-      '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
-      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">\n',
-    css: document.getElementById("page-style").textContent,
-    shell: document.getElementById("app-shell").innerHTML,
-    js: document.getElementById("app-js").textContent
-  };
-  var SCRIPT_END = "<" + "/script>";
-
   var data;
   try { data = JSON.parse(document.getElementById("news-data").textContent); }
   catch (e) { data = { companies: [], highlights: [] }; }
@@ -307,31 +355,7 @@ footer { color: var(--muted); font-size: 12px; }
   var CATS = ["실적·재무", "규제·정책", "상품·서비스", "제휴·M&A", "디지털·기술", "사고·리스크", "인사·조직", "사회공헌·기타"];
   var limit = data.limitPerCompany || 30;
   var companies = data.companies || [];
-  var state = { id: null, cat: "전체" };
-
-  // 검색 대상 언론사 50곳 (references/outlets.md와 같은 목록)
-  var OUTLETS = [
-    ["mk.co.kr", "매일경제"], ["chosun.com", "조선일보"], ["joongang.co.kr", "중앙일보"], ["donga.com", "동아일보"],
-    ["hani.co.kr", "한겨레"], ["kbs.co.kr", "KBS"], ["yna.co.kr", "연합뉴스"], ["einfomax.co.kr", "연합인포맥스"],
-    ["khan.co.kr", "경향신문"], ["hankookilbo.com", "한국일보"], ["kmib.co.kr", "국민일보"], ["seoul.co.kr", "서울신문"],
-    ["segye.com", "세계일보"], ["munhwa.com", "문화일보"], ["newsis.com", "뉴시스"], ["news1.kr", "뉴스1"],
-    ["imbc.com", "MBC"], ["sbs.co.kr", "SBS Biz"], ["ytn.co.kr", "YTN"], ["wowtv.co.kr", "한국경제TV"],
-    ["mtn.co.kr", "MTN 머니투데이방송"], ["metroseoul.co.kr", "메트로신문"], ["hankyung.com", "한국경제"], ["sedaily.com", "서울경제"],
-    ["mt.co.kr", "머니투데이"], ["fnnews.com", "파이낸셜뉴스"], ["heraldcorp.com", "헤럴드경제"], ["asiae.co.kr", "아시아경제"],
-    ["edaily.co.kr", "이데일리"], ["ajunews.com", "아주경제"], ["etoday.co.kr", "이투데이"], ["newspim.com", "뉴스핌"],
-    ["dailian.co.kr", "데일리안"], ["g-enews.com", "글로벌이코노믹"], ["newdaily.co.kr", "뉴데일리경제"], ["etnews.com", "전자신문"],
-    ["dt.co.kr", "디지털타임스"], ["zdnet.co.kr", "지디넷코리아"], ["inews24.com", "아이뉴스24"], ["bloter.net", "블로터"],
-    ["businesspost.co.kr", "비즈니스포스트"], ["seoulfn.com", "서울파이낸스"], ["kbanker.co.kr", "대한금융신문"], ["fntimes.com", "한국금융신문"],
-    ["thebell.co.kr", "더벨"], ["dealsite.co.kr", "딜사이트"], ["bizwatch.co.kr", "비즈니스워치"], ["financialpost.co.kr", "파이낸셜포스트"],
-    ["thevaluenews.co.kr", "더밸류뉴스"], ["ceoscoredaily.com", "CEO스코어데일리"]
-  ];
-  // 회사별 Google 뉴스 검색어
-  var QUERY = {
-    samsung: '"삼성카드"', shinhan: '"신한카드"', kb: '"KB국민카드" OR "국민카드"', lotte: '"롯데카드"',
-    woori: '"우리카드"', hana: '"하나카드"', bc: '"BC카드" OR "비씨카드"', nh: '"NH농협카드" OR "농협카드"',
-    hyundai: '"현대카드"', naverpay: '"네이버페이" OR "네이버파이낸셜"', kakaopay: '"카카오페이"', tosspay: '"토스페이" OR "토스페이먼츠"'
-  };
-  var BROWSER = "host:claude_browser";
+  var state = { view: "all", id: null, cat: "전체" };
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -347,13 +371,65 @@ footer { color: var(--muted); font-size: 12px; }
     a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
     return a;
   }
-  function byDate(a, b) { return (b.date || "").localeCompare(a.date || ""); }
+  function timeKey(a) {
+    var value = a.publishedAt || ((a.date || "") + "T00:00:00+09:00");
+    var timestamp = Date.parse(value);
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  }
+  function byDate(a, b) {
+    return timeKey(b) - timeKey(a) ||
+      (a._companyOrder || 0) - (b._companyOrder || 0) ||
+      (a._articleOrder || 0) - (b._articleOrder || 0);
+  }
+  function whenText(a) {
+    if (!a.publishedAt) return a.date || "날짜 미상";
+    var d = new Date(a.publishedAt);
+    if (isNaN(d)) return a.date || "날짜 미상";
+    var parts = new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+    }).formatToParts(d);
+    var values = {};
+    parts.forEach(function (p) { values[p.type] = p.value; });
+    return values.year + "-" + values.month + "-" + values.day + " " + values.hour + ":" + values.minute + " KST";
+  }
+  function allArticles() {
+    var all = [];
+    companies.forEach(function (c, ci) {
+      (c.articles || []).forEach(function (a, ai) {
+        var row = Object.assign({}, a);
+        row._companyId = c.id; row._companyName = c.name; row._companyOrder = ci; row._articleOrder = ai;
+        all.push(row);
+      });
+    });
+    return all.sort(byDate);
+  }
+  function outletsFor(list) {
+    var names = new Set();
+    list.forEach(function (a) {
+      if (typeof a.outlet === "string" && a.outlet.trim()) names.add(a.outlet.trim());
+      (Array.isArray(a.also) ? a.also : []).forEach(function (x) {
+        if (x && typeof x.outlet === "string" && x.outlet.trim()) names.add(x.outlet.trim());
+      });
+    });
+    return Array.from(names).sort(function (a, b) { return a.localeCompare(b, "ko"); });
+  }
+  function outletScore(list) {
+    var names = outletsFor(list);
+    if (!Array.isArray(data.priorityOutlets) || !data.priorityOutlets.length) return { names: names, major: null, other: [] };
+    var majors = new Set(data.priorityOutlets);
+    return { names: names, major: names.filter(function (n) { return majors.has(n); }), other: names.filter(function (n) { return !majors.has(n); }) };
+  }
+  function scoreText(score) {
+    if (score.major === null) return "점수 미산정 (주요 언론사 기준 누락)";
+    return Math.min(score.major.length, 10) + "/10점 · 주요 언론사 " + score.major.length + "곳" + (score.major.length < 9 ? " (목표 9곳 미달)" : " (목표 달성)") + ": " + (score.major.join(", ") || "없음") + (score.other.length ? " · 기타 출처: " + score.other.join(", ") : "");
+  }
   function pick(list) {
     var all = list.slice().sort(byDate);
     if (all.length <= limit) return all;
     // 30건 초과: 중요도 높은 순, 같으면 최신순으로 고른 뒤 다시 최신순
     return all.slice().sort(function (a, b) {
-      return (IMP_RANK[a.importance] || 2) - (IMP_RANK[b.importance] || 2) || byDate(a, b);
+      return (IMP_RANK[a.importance] ?? 2) - (IMP_RANK[b.importance] ?? 2) || byDate(a, b);
     }).slice(0, limit).sort(byDate);
   }
 
@@ -361,38 +437,94 @@ footer { color: var(--muted); font-size: 12px; }
   var chips = {};
   function renderTop() {
     document.getElementById("page-title").textContent = data.title || "카드·간편결제 뉴스";
-    var total = companies.reduce(function (s, c) { return s + Math.min((c.articles || []).length, limit); }, 0);
+    var displayed = allArticles();
+    var events = new Set(displayed.filter(function (a) { return a.eventId; }).map(function (a) { return a.eventId; }));
+    var eventsComplete = displayed.every(function (a) { return !!a.eventId; });
     var meta = document.getElementById("meta"); meta.textContent = "";
     var rows = [["기간", (data.period ? data.period.from + " ~ " + data.period.to : "-")],
       ["기준일", data.generatedAt || "-"],
-      ["기사", total + "건 · " + companies.length + "개사 · 회사별 최대 " + limit + "건"],
-      ["출처", "국내 언론사 50곳"]];
+      ["고유 사건", eventsComplete ? events.size + "건" : "집계 불가 (사건 ID 누락)"],
+      ["전체 수집", displayed.length + "건 · " + companies.length + "개 대상 · 회사별 최대 " + limit + "건"]];
     if (data.updatedAt) rows.push(["마지막 조회", data.updatedAt]);
     rows.forEach(function (p) {
       var s = el("span"); s.appendChild(document.createTextNode(p[0] + " ")); s.appendChild(el("b", "mono", p[1])); meta.appendChild(s);
     });
+    document.getElementById("coverage").textContent = data.coverage || "검색 범위 상세가 기록되지 않았습니다. 모든 언론사를 조사했다는 뜻은 아닙니다.";
+    var coverageContent = document.getElementById("coverage-content");
+    coverageContent.textContent = "";
+    var sections = Array.isArray(data.coverageDetails) ? data.coverageDetails : [];
+    var overview = Array.isArray(data.coverageOverview) ? data.coverageOverview : [];
+    if (overview.length) {
+      var overviewWrap = el("div", "table-wrap");
+      var overviewTable = el("table", "info-table coverage-table");
+      var overviewHead = el("thead"); var overviewHeading = el("tr");
+      ["항목", "내용"].forEach(function (label) { var th = el("th", null, label); th.scope = "col"; overviewHeading.appendChild(th); });
+      overviewHead.appendChild(overviewHeading); overviewTable.appendChild(overviewHead);
+      var overviewBody = el("tbody");
+      overview.forEach(function (section) {
+        var row = el("tr"); var label = el("th", null, section.title || "검색 범위"); label.scope = "row"; row.appendChild(label);
+        var cell = el("td");
+        if (section.text) cell.appendChild(el("p", null, section.text));
+        if (Array.isArray(section.tags) && section.tags.length) {
+          var tags = el("div", "coverage-tags");
+          section.tags.forEach(function (tag) { tags.appendChild(el("span", "coverage-tag", tag)); });
+          cell.appendChild(tags);
+        }
+        if (Array.isArray(section.items) && section.items.length) {
+          var items = el("ul");
+          section.items.forEach(function (item) { items.appendChild(el("li", null, item)); });
+          cell.appendChild(items);
+        }
+        row.appendChild(cell); overviewBody.appendChild(row);
+      });
+      overviewTable.appendChild(overviewBody); overviewWrap.appendChild(overviewTable); coverageContent.appendChild(overviewWrap);
+    }
+    if (sections.length) {
+      var records = el("details", "coverage-records");
+      records.appendChild(el("summary", null, "검색어와 상세 기록 보기"));
+      sections.forEach(function (section) {
+        records.appendChild(el("h3", null, section.title || "검색 기록"));
+        records.appendChild(el("p", null, section.text || "기록 없음"));
+      });
+      coverageContent.appendChild(records);
+    } else if (!overview.length) {
+      coverageContent.appendChild(el("p", null, "상세 검색 기록이 없습니다. 검색한 언론사를 확인할 수 없습니다."));
+    }
     var hl = document.getElementById("highlights"); hl.textContent = "";
-    (data.highlights || []).forEach(function (h) {
+    (data.highlights || []).slice().sort(byDate).forEach(function (h) {
       var li = el("li");
       if (h.date) li.appendChild(el("span", "when", h.date));
       li.appendChild(el("span", "co", h.company || ""));
       li.appendChild(link(h.text || "", h.url));
       hl.appendChild(li);
     });
-    document.getElementById("highlights-box").hidden = !(data.highlights || []).length;
+    if (!(data.highlights || []).length) hl.appendChild(el("li", null, "확인된 핵심 이슈가 없습니다."));
 
     ["chips-card", "chips-pay"].forEach(function (id) { document.getElementById(id).textContent = ""; });
     chips = {};
+    var scores = document.getElementById("scores"); scores.textContent = "";
+    var scoresWrap = el("div", "table-wrap"); scoresWrap.tabIndex = 0; scoresWrap.setAttribute("role", "region"); scoresWrap.setAttribute("aria-label", "회사별 매체 커버리지 점수 표");
+    var scoresTable = el("table", "info-table scores-table"); var scoresHead = el("thead"); var scoresHeading = el("tr");
+    ["회사·서비스", "점수", "목표", "확인된 주요 언론사", "기타 출처"].forEach(function (label) { var th = el("th", null, label); th.scope = "col"; scoresHeading.appendChild(th); });
+    scoresHead.appendChild(scoresHeading); scoresTable.appendChild(scoresHead); var scoresBody = el("tbody");
     companies.forEach(function (c) {
-      var n = Math.min((c.articles || []).length, limit);
+      var n = (c.articles || []).length;
+      var outletResult = outletScore((c.articles || []).slice().sort(byDate));
+      var scoreRow = el("tr"); var companyCell = el("th", null, c.name); companyCell.scope = "row"; scoreRow.appendChild(companyCell);
+      var major = outletResult.major;
+      scoreRow.appendChild(el("td", "mono", major === null ? "미산정" : Math.min(major.length, 10) + "/10"));
+      scoreRow.appendChild(el("td", major === null ? "score-missing" : (major.length >= 9 ? "score-achieved" : "score-missing"), major === null ? "기준 누락" : (major.length >= 9 ? "달성" : "미달")));
+      scoreRow.appendChild(el("td", null, major === null ? "기준 확인 필요" : (major.join(", ") || "없음")));
+      scoreRow.appendChild(el("td", null, outletResult.other.join(", ") || "—")); scoresBody.appendChild(scoreRow);
       var b = el("button", "chip" + (n ? "" : " empty"));
       b.type = "button"; b.id = "chip-" + c.id;
       b.appendChild(el("span", null, c.name));
-      b.appendChild(el("span", "n", n + "/" + limit));
+      b.appendChild(el("span", "n", n + "건"));
       b.addEventListener("click", function () { select(c.id, true); });
       document.getElementById(c.group === "pay" ? "chips-pay" : "chips-card").appendChild(b);
       chips[c.id] = b;
     });
+    scoresTable.appendChild(scoresBody); scoresWrap.appendChild(scoresTable); scores.appendChild(scoresWrap);
   }
 
   function toggleRow(boxId, values, current, onPick) {
@@ -406,14 +538,24 @@ footer { color: var(--muted); font-size: 12px; }
   }
 
   function render() {
+    var isAll = state.view === "all";
     var c = companies.filter(function (x) { return x.id === state.id; })[0];
-    if (!c) return;
-    Object.keys(chips).forEach(function (k) { chips[k].setAttribute("aria-pressed", String(k === c.id)); });
-    var arts = pick(c.articles || []);
-    document.getElementById("co-name").textContent = c.name;
-    document.getElementById("co-count").textContent = arts.length + " / " + limit + "건";
+    if (!isAll && !c) return;
+    Object.keys(chips).forEach(function (k) { chips[k].setAttribute("aria-pressed", String(!isAll && k === c.id)); });
+    document.getElementById("view-all").setAttribute("aria-pressed", String(isAll));
+    document.getElementById("view-company").setAttribute("aria-pressed", String(!isAll));
+    document.getElementById("company-picker").hidden = isAll;
+    document.getElementById("view-help").textContent = isAll ?
+      "모든 회사의 수집 기사를 최신 날짜와 시각 순으로 보여줍니다." :
+      "회사를 선택하면 해당 회사의 수집 기사 전체를 최신순으로 보여줍니다.";
+    var arts = isAll ? allArticles() : (c.articles || []).slice().sort(byDate);
+    document.getElementById("co-name").textContent = isAll ? "전체 뉴스 최신순" : c.name;
+    document.getElementById("co-count").textContent = arts.length + "건";
+    document.getElementById("co-outlet-score").textContent = isAll ? "전체 회사의 검증된 수집 기사" : "매체 커버리지 " + scoreText(outletScore(arts));
     var dg = document.getElementById("co-digest");
-    dg.textContent = c.digest || ""; dg.hidden = !c.digest;
+    dg.textContent = isAll ? "최신 뉴스가 위에 표시됩니다. 기사 시각이 없으면 같은 날짜 안에서는 수집 데이터의 안정적인 순서를 유지합니다." :
+      [c.digest, c.searchStatus || (!arts.length ? "확인된 기사 없음. 검색 범위와 접근 여부를 확인하세요." : "")].filter(Boolean).join(" · ");
+    dg.hidden = !dg.textContent;
 
     var cats = ["전체"];
     arts.forEach(function (a) { if (a.category && cats.indexOf(a.category) < 0) cats.push(a.category); });
@@ -424,23 +566,24 @@ footer { color: var(--muted); font-size: 12px; }
     var list = document.getElementById("list"); list.textContent = "";
     var shown = arts.filter(function (a) { return state.cat === "전체" || a.category === state.cat; });
     if (!shown.length) {
-      list.appendChild(el("li", "none", arts.length ? "조건에 맞는 기사 없음" : "기간 내 기사 없음"));
+      list.appendChild(el("li", "none", arts.length ? "조건에 맞는 기사 없음" : (isAll ? "확인된 전체 기사가 없습니다." : (c.searchStatus || "확인된 기사 없음"))));
       return;
     }
     shown.forEach(function (a) {
       var li = el("li", "item");
-      li.appendChild(el("span", "date", a.date || "날짜 미상"));
+      li.appendChild(el("span", "date", whenText(a)));
       li.appendChild(el("span", "outlet", a.outlet || "언론사 미상"));
       var body = el("div", "body");
       body.appendChild(link(a.title || "(제목 없음)", a.url, "title"));
       if (a.summary) body.appendChild(el("p", "summary", a.summary));
       var tags = el("div", "tags");
+      if (isAll && a._companyName) tags.appendChild(el("span", "company-tag", a._companyName));
       tags.appendChild(el("span", "imp " + (a.importance || "low"), "중요도 " + (IMP[a.importance] || "낮음")));
       if (a.category) tags.appendChild(el("span", "cat", a.category));
       if (a.auto) tags.appendChild(el("span", "auto", "자동 수집"));
       if (a.also && a.also.length) {
-        var al = el("span", "also", "같은 보도: ");
-        a.also.slice(0, 3).forEach(function (o, i) {
+        var al = el("span", "also", "관련 보도: ");
+        a.also.forEach(function (o, i) {
           if (i) al.appendChild(document.createTextNode(", "));
           al.appendChild(link(o.outlet || "기사", o.url));
         });
@@ -453,260 +596,19 @@ footer { color: var(--muted); font-size: 12px; }
   }
 
   function select(id, remember) {
-    state.id = id; state.cat = "전체"; render();
+    state.view = "company"; state.id = id; state.cat = "전체"; render();
     if (remember) { try { localStorage.setItem("cpn-company", id); } catch (e) {} }
   }
 
-  // ---------- 현시점 조회 ----------
-  var btn = document.getElementById("refresh-btn");
-  var stopBtn = document.getElementById("stop-btn");
-  var statusEl = document.getElementById("refresh-status");
-  var stopRequested = false;
-
-  function setStatus(text, warn) { statusEl.textContent = text; statusEl.className = "status" + (warn ? " warn" : ""); }
-
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function kstParts(d) {
-    var k = new Date(d.getTime() + 9 * 3600 * 1000);
-    return { y: k.getUTCFullYear(), m: k.getUTCMonth() + 1, d: k.getUTCDate(), h: k.getUTCHours(), mi: k.getUTCMinutes() };
-  }
-  function ymd(p) { return p.y + "-" + pad(p.m) + "-" + pad(p.d); }
-  function oneMonthBefore(p) {
-    // 한 달 전 같은 날의 다음 날 (그 날이 없으면 다음 달 1일)
-    var y = p.y, m = p.m - 1;
-    if (m === 0) { m = 12; y -= 1; }
-    var last = new Date(Date.UTC(y, m, 0)).getUTCDate();
-    if (p.d >= last) return { y: m === 12 ? y + 1 : y, m: m === 12 ? 1 : m + 1, d: 1 };
-    return { y: y, m: m, d: p.d + 1 };
-  }
-  function addDay(s) {
-    var d = new Date(s + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 1);
-    return d.toISOString().slice(0, 10);
+  function setView(view, remember) {
+    state.view = view === "company" ? "company" : "all";
+    state.cat = "전체";
+    render();
+    if (remember) { try { localStorage.setItem("cpn-view", state.view); } catch (e) {} }
   }
 
-  function decode(s) {
-    return String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-      .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-      .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").trim();
-  }
-  function outletFor(sourceUrl) {
-    var host = "";
-    try { host = new URL(sourceUrl).hostname.toLowerCase(); } catch (e) { return null; }
-    for (var i = 0; i < OUTLETS.length; i++) {
-      var d = OUTLETS[i][0];
-      if (host === d || host.slice(-(d.length + 1)) === "." + d) return OUTLETS[i][1];
-    }
-    return null;
-  }
-  function parseRss(text, from, to) {
-    var out = [];
-    String(text).split("<item>").slice(1).forEach(function (chunk) {
-      var t = (chunk.match(/<title>([\s\S]*?)<\/title>/) || [])[1];
-      var l = (chunk.match(/<link>([\s\S]*?)<\/link>/) || [])[1];
-      var p = (chunk.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1];
-      var s = chunk.match(/<source url="([^"]+)">([\s\S]*?)<\/source>/);
-      if (!t || !l || !p || !s) return;
-      var outlet = outletFor(s[1]);
-      if (!outlet) return;
-      var when = new Date(decode(p));
-      if (isNaN(when)) return;
-      var date = ymd(kstParts(when));
-      if (date < from || date > to) return;
-      var title = decode(t);
-      var srcName = decode(s[2]);
-      var cut = title.lastIndexOf(" - " + srcName);
-      if (cut > 0) title = title.slice(0, cut);
-      out.push({ date: date, outlet: outlet, title: title, url: decode(l), auto: true, also: [] });
-    });
-    return out;
-  }
-  function norm(t) { return String(t || "").replace(/[\s"'“”‘’…·.,!?()\[\]<>「」『』\-–—:;|/]/g, "").toLowerCase(); }
-
-  function guessCategory(t) {
-    if (/순이익|순익|실적|영업이익|연체율|여전채|ABS|ABCP|조달|배당/.test(t)) return "실적·재무";
-    if (/유출|해킹|장애|먹통|소송|피해|사고|과징금|검찰|경찰|수사/.test(t)) return "사고·리스크";
-    if (/금감원|금융위|제재|규제|수수료율|당국|법안|정부/.test(t)) return "규제·정책";
-    if (/인수|합병|매각|지분|제휴|협약|MOU|맞손|손잡/.test(t)) return "제휴·M&A";
-    if (/AI|인공지능|스테이블|블록체인|토큰|마이데이터|플랫폼|얼굴|페이스/.test(t)) return "디지털·기술";
-    if (/대표|사장|선임|인사|희망퇴직|조직/.test(t)) return "인사·조직";
-    if (/기부|후원|ESG|상생|봉사|사회공헌/.test(t)) return "사회공헌·기타";
-    return "상품·서비스";
-  }
-  function guessImportance(cat) {
-    return (cat === "실적·재무" || cat === "규제·정책" || cat === "사고·리스크" || cat === "제휴·M&A") ? "mid" : "low";
-  }
-
-  function textOf(result) {
-    if (!result) return "";
-    if (typeof result.payload === "string") return result.payload;
-    var blocks = result.content || [];
-    for (var i = 0; i < blocks.length; i++) if (blocks[i] && blocks[i].type === "text") return blocks[i].text || "";
-    return result.payload ? JSON.stringify(result.payload) : "";
-  }
-
-  var FATAL = {
-    server_not_connected: "Claude 데스크톱 앱에서 이 페이지를 열어야 현시점 조회를 할 수 있습니다.",
-    not_in_manifest: "이 페이지의 브라우저 사용이 꺼져 있습니다. 페이지의 권한 메뉴에서 켜 주세요.",
-    cancelled: "브라우저 사용을 허용하지 않아 조회를 멈췄습니다.",
-    approval_required: "브라우저 사용 승인이 필요합니다. 다시 눌러 승인해 주세요.",
-    blocked_by_policy: "조직 정책으로 브라우저 사용이 막혀 있습니다.",
-    not_granted: "이 화면에서는 브라우저를 쓸 수 없습니다.",
-    capability_disabled: "이 화면에서는 브라우저를 쓸 수 없습니다."
-  };
-
-  async function fetchCompany(mcp, c, from, to) {
-    var q = QUERY[c.id] || ('"' + c.name + '"');
-    q += " after:" + from + " before:" + addDay(to);
-    var url = "https://news.google.com/rss/search?q=" + encodeURIComponent(q) + "&hl=ko&gl=KR&ceid=KR:ko";
-    await mcp.callTool(BROWSER, "navigate", { url: url }, { cache: false });
-    var res = await mcp.callTool(BROWSER, "get_page_text", { max_chars: 120000 }, { cache: false });
-    return parseRss(textOf(res), from, to);
-  }
-
-  async function classify(sample, c, kept, fresh) {
-    // 같은 사건 묶기, 분류, 한 달 동향 요약을 Claude에 한 번에 묻는다
-    var lines = [];
-    kept.forEach(function (a, i) { lines.push("E" + i + " | " + a.date + " | " + a.outlet + " | " + a.title); });
-    fresh.forEach(function (a, i) { lines.push("N" + i + " | " + a.date + " | " + a.outlet + " | " + a.title); });
-    var prompt = "다음은 국내 " + c.name + " 관련 뉴스 기사 목록이다. E로 시작하는 항목은 이미 페이지에 실린 기사, N으로 시작하는 항목은 새로 찾은 기사다.\n" +
-      "N 항목마다 다음을 정하라.\n" +
-      "- category: " + CATS.join(", ") + " 중 하나\n" +
-      "- importance: high(실적 발표, 규제·제재, 대형 사고, M&A 등 업계 영향 큼), mid(주요 상품·제휴), low(일반 프로모션·사회공헌·인사) 중 하나\n" +
-      "- dupOf: 같은 사건을 다룬 다른 항목 번호(E 항목 또는 앞선 N 항목, 예: \"E2\", \"N0\"). 없으면 null\n" +
-      "그리고 전체 목록을 바탕으로 이 회사의 한 달 동향을 1~2문장 한국어로 digest에 써라. 제목에 없는 사실이나 수치를 지어내지 마라.\n" +
-      "JSON만 답하라: {\"digest\":\"...\",\"items\":[{\"id\":\"N0\",\"category\":\"상품·서비스\",\"importance\":\"mid\",\"dupOf\":null}]}\n\n" +
-      lines.join("\n");
-    return await sample.json(prompt, { modelTier: "quick", cache: false });
-  }
-
-  function mergeCompany(c, from, to, fresh, verdict) {
-    var kept = (c.articles || []).filter(function (a) { return a.date >= from && a.date <= to; });
-    var seen = {};
-    kept.forEach(function (a) { seen[norm(a.title)] = true; (a.also || []).forEach(function (o) { if (o.url) seen[o.url] = true; }); });
-    var byId = {};
-    ((verdict && verdict.items) || []).forEach(function (v) { if (v && v.id) byId[String(v.id)] = v; });
-    var added = [];
-    fresh.forEach(function (a, i) {
-      if (seen[norm(a.title)] || seen[a.url]) return;
-      var v = byId["N" + i] || {};
-      var dup = v.dupOf ? String(v.dupOf) : null;
-      var target = null;
-      if (dup && dup.charAt(0) === "E") target = kept[Number(dup.slice(1))];
-      if (dup && dup.charAt(0) === "N") target = added.filter(function (x) { return x._n === "N" + dup.slice(1); })[0];
-      if (target) {
-        target.also = target.also || [];
-        if (target.also.length < 3 && target.outlet !== a.outlet) target.also.push({ outlet: a.outlet, url: a.url });
-        seen[norm(a.title)] = true;
-        return;
-      }
-      a.category = CATS.indexOf(v.category) >= 0 ? v.category : guessCategory(a.title);
-      a.importance = IMP_RANK[v.importance] != null ? v.importance : guessImportance(a.category);
-      a._n = "N" + i;
-      seen[norm(a.title)] = true;
-      added.push(a);
-    });
-    added.forEach(function (a) { delete a._n; });
-    c.articles = pick(kept.concat(added));
-    if (verdict && typeof verdict.digest === "string" && verdict.digest.trim()) c.digest = verdict.digest.trim();
-    return added.length;
-  }
-
-  function rebuildHighlights() {
-    var all = [];
-    companies.forEach(function (c) {
-      (c.articles || []).forEach(function (a) { if (a.importance === "high") all.push({ company: c.name, date: a.date, text: a.title, url: a.url }); });
-    });
-    all.sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); });
-    if (all.length) data.highlights = all.slice(0, 5);
-  }
-
-  function buildDocument() {
-    var json = JSON.stringify(data, null, 1).replace(/</g, "\\u003c");
-    var reset = ":root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}" +
-      "body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}";
-    return "<!doctype html><html><head><meta charset=utf8><meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\"><style>" +
-      reset + "</style></head><body>" +
-      SRC.head + '<style id="page-style">' + SRC.css + "</style>\n\n" +
-      '<div class="wrap" id="app-shell">' + SRC.shell + "</div>\n\n" +
-      '<script id="news-data" type="application/json">\n' + json + "\n" + SCRIPT_END + "\n\n" +
-      '<script id="app-js">' + SRC.js + SCRIPT_END + "\n</body></html>";
-  }
-
-  async function save() {
-    var artifact = await claude.use("artifact");
-    if (!artifact) return "이 화면에만 반영됐습니다. 이 보기에서는 페이지를 저장할 수 없습니다.";
-    try {
-      await artifact.publish(buildDocument());
-      return "저장했습니다. 페이지를 새로 불러옵니다.";
-    } catch (e) {
-      var code = e && e.code;
-      if (code === "conflict") return "다른 곳에서 먼저 저장된 버전으로 새로 불러옵니다.";
-      if (code === "not_writer" || code === "not_granted" || code === "consent_required" || code === "capability_disabled" || code === "not_declared")
-        return "이 화면에만 반영됐습니다. 페이지를 저장할 권한이 없습니다.";
-      if (code === "too_large") return "이 화면에만 반영됐습니다. 페이지가 너무 커서 저장하지 못했습니다.";
-      if (code === "rate_limited") return "이 화면에만 반영됐습니다. 저장이 너무 잦습니다. 잠시 뒤 다시 조회해 주세요.";
-      return "이 화면에만 반영됐습니다. 저장 중 오류가 났습니다. 잠시 뒤 다시 조회해 주세요.";
-    }
-  }
-
-  async function refresh() {
-    if (!window.claude || !claude.use) { setStatus("Claude에서 이 페이지를 열어야 현시점 조회를 할 수 있습니다.", true); return; }
-    btn.disabled = true; stopBtn.hidden = false; stopRequested = false;
-    setStatus("브라우저 연결 중…");
-    try {
-      var mcp = await claude.use("mcp");
-      if (!mcp) { setStatus(FATAL.server_not_connected, true); return; }
-      var sample = await claude.use("sample");
-      var useClaude = !!sample;
-
-      var now = kstParts(new Date());
-      var to = ymd(now), from = ymd(oneMonthBefore(now));
-      var addedTotal = 0, failed = [];
-      for (var i = 0; i < companies.length; i++) {
-        if (stopRequested) break;
-        var c = companies[i];
-        setStatus(c.name + " 조회 중 (" + (i + 1) + "/" + companies.length + ")");
-        var fresh;
-        try { fresh = await fetchCompany(mcp, c, from, to); }
-        catch (e) {
-          var code = e && e.code;
-          if (FATAL[code]) { setStatus(FATAL[code], true); return; }
-          failed.push(c.name); continue;
-        }
-        var verdict = null;
-        if (useClaude && fresh.length) {
-          setStatus(c.name + " 분류 중 (" + (i + 1) + "/" + companies.length + ")");
-          var kept = (c.articles || []).filter(function (a) { return a.date >= from && a.date <= to; });
-          try { verdict = await classify(sample, c, kept, fresh); }
-          catch (e) {
-            var sc = e && e.code;
-            if (sc === "not_granted" || sc === "sampling_disabled" || sc === "not_declared" || sc === "capability_disabled" || sc === "capability_removed") useClaude = false;
-          }
-        }
-        addedTotal += mergeCompany(c, from, to, fresh, verdict);
-        if (state.id === c.id) render();
-      }
-      data.period = { from: from, to: to };
-      data.generatedAt = to;
-      data.updatedAt = to + " " + pad(now.h) + ":" + pad(now.mi) + " KST";
-      rebuildHighlights();
-      renderTop(); render();
-      var msg = (stopRequested ? "중지했습니다. " : "") + "새 기사 " + addedTotal + "건을 더했습니다." +
-        (failed.length ? " 조회 실패: " + failed.join(", ") + "." : "") +
-        (useClaude ? "" : " Claude 분류를 쓰지 못해 제목 키워드로 분류했습니다.");
-      setStatus(msg + " " + await save(), failed.length > 0);
-    } finally {
-      btn.disabled = false; stopBtn.hidden = true;
-    }
-  }
-
-  // Claude 밖(GitHub Pages 등)에서 열면 버튼 대신 안내만 보여 준다
-  if (!window.claude || !window.claude.use) {
-    btn.hidden = true;
-    setStatus("현시점 조회는 Claude 데스크톱 앱에서 연 페이지에서만 할 수 있습니다.");
-  }
-  btn.addEventListener("click", function () { refresh(); });
-  stopBtn.addEventListener("click", function () { stopRequested = true; setStatus("이번 회사까지 조회하고 멈춥니다…"); });
+  document.getElementById("view-all").addEventListener("click", function () { setView("all", true); });
+  document.getElementById("view-company").addEventListener("click", function () { setView("company", true); });
 
   renderTop();
   var start = (location.hash || "").slice(1);
@@ -715,8 +617,11 @@ footer { color: var(--muted); font-size: 12px; }
     var firstWith = companies.filter(function (c) { return (c.articles || []).length; })[0] || companies[0];
     start = firstWith ? firstWith.id : "";
   }
-  if (start) select(start, false);
+  if (start) state.id = start;
+  try { state.view = localStorage.getItem("cpn-view") === "company" ? "company" : "all"; } catch (e) { state.view = "all"; }
+  render();
 })();
 </script>
+</body>
+</html>
 
-</body></html>
